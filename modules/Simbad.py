@@ -32,8 +32,8 @@ class SpaceObject:
         """
         Args:
             name (str): The name of the space-object
-            id (str): The id of the space-object, e.g. HD xxxxxx for stars
-            spec (str): The spectral type if the object is a star
+            id (str): The id of the space-object, e.g. HD xxxxxx for objs
+            spec (str): The spectral type if the object is a obj
             magn (float): [description]
         """
         self.name = name
@@ -46,13 +46,13 @@ class SpaceObject:
 
     @staticmethod
     def ParseCSV(string : str):
-        """Parses a starobject from a csv-string
+        """Parses a objobject from a csv-string
 
         Args:
             string (str): The csv-string
 
         Returns:
-            SpaceObject: The parsed spaceobejct
+            SpaceObject: The parsed space object
         """
         lineSplit = string.split(",")
         return SpaceObject(
@@ -63,6 +63,15 @@ class SpaceObject:
         )
 
     def ParseHTML(id : str, string : str):
+        """Parses a space-object from a HTML-Files responded by the simbad-databank
+
+        Args:
+            id (str): The id of the object
+            string (str): The HTML-File
+
+        Returns:
+            SpaceObject: The parsed space-object
+        """
         nameReg = re.search(NAME_REGEX, string)
         specReg = re.search(SPEC_TYPE_REGEX, string)
         magReg = re.search(MAG_REGEX, string)
@@ -78,6 +87,14 @@ class SpaceObject:
         return SpaceObject(name, id, spec, mag)
 
     def ParseDict(pDict : dict):
+        """Parse a space-object by a dict
+
+        Args:
+            pDict (dict): The dict to parse the obj from
+
+        Returns:
+            SpaceObject: The parsed space-object
+        """
         return SpaceObject(
             pDict["name"],
             pDict["id"],
@@ -86,9 +103,19 @@ class SpaceObject:
         )
 
     def GetCSV(self) -> str:
+        """Get the CSV-string
+
+        Returns:
+            str: The CSV-String
+        """
         return f"${self.name},${self.id},${self.shortSpec},${self.magn}\n"
 
     def GetDict(self) -> dict:
+        """Get the Dict-value of the object
+
+        Returns:
+            dict: The dict
+        """
         return {
             "name": self.name,
             "id": self.id,
@@ -96,33 +123,67 @@ class SpaceObject:
             "magn": self.magn
         }
 
-    def GetKelvin(self):
+    def GetKelvin(self) -> float:
+        """Get the kelvin surface temperature of the space-object by the spectral-class
+
+        Returns:
+            float: The Kelvins
+        """
         return KELVINS[self.shortSpec[0]](int(self.shortSpec[1]))
 
 
 class DataBank:
+    """A space-object data. It enables communication with the SIMBAD-databank online
+    """
     def __init__(self) -> None:
-        self.starObjs = { }
+        self.objs = { }
         self.path = ""
 
-    def Append(self, star : SpaceObject):
-        self.starObjs[star.id] = star
+    def Append(self, obj : SpaceObject):
+        """Append a spaceobject
 
-    def HasStar(self, id : str) -> bool:
-        return (id in self.starObjs)
+        Args:
+            obj (SpaceObject): The obj to append
+        """
+        self.objs[obj.id] = obj
+
+    def HasObj(self, id : str) -> bool:
+        """Check if the databank has a object with the given id
+
+        Args:
+            id (str): The id to check
+
+        Returns:
+            bool: Whether the data bank has a star with the given id or not
+        """
+        return (id in self.objs)
 
     def LoadDB(self, path : str):
+        """Loads the data-bank from a .sdb-file, the given path is saved and used for saving if not specified otherwise 
+
+        Args:
+            path (str): The path to the .sdb-file
+        """
         self.path = path
         try:
             jsonObjs = json.loads(open(path, "r").read())
             for obj in jsonObjs:
-                self.starObjs[obj["id"]] = SpaceObject.ParseDict(obj)
+                self.objs[obj["id"]] = SpaceObject.ParseDict(obj)
         except FileNotFoundError:
             jFile = open(path, "w")
             jFile.write("[ ]")
             jFile.close()
+        return self
 
     def SaveDB(self, path : str = ""):
+        """Saves the data bank to the given .sdb-file
+
+        Args:
+            path (str, optional): The path to save the data bank to, . Defaults to "".
+
+        Raises:
+            Exception: [description]
+        """
         if path == "":
             if self.path != "":
                 path = self.path
@@ -130,7 +191,7 @@ class DataBank:
                 raise Exception("No path specified")
 
         jsonItems = [ ]
-        for key, value in self.starObjs.items():
+        for key, value in self.objs.items():
             jsonItems.append(value.GetDict())
             
         jFile = open(path, "w")
@@ -138,22 +199,30 @@ class DataBank:
         jFile.close()
 
     def IDRequest(self, id : str) -> SpaceObject:
-        if self.HasStar(id): return self.starObjs[id]
+        """
+
+        Args:
+            id (str): [description]
+
+        Returns:
+            SpaceObject: [description]
+        """
+        if self.HasObj(id): return self.objs[id]
         req = requests.get("http://simbad.u-strasbg.fr/simbad/sim-id?Ident=" + id.replace(" ", "+") + "&NbIdent=1&Radius=2&Radius.unit=arcmin&submit=submit+id")
-        starObj = None
+        objObj = None
         if req.status_code == 200:
-            starObj = SpaceObject.ParseHTML(id, req.text)
-            self.Append(starObj)
+            objObj = SpaceObject.ParseHTML(id, req.text)
+            self.Append(objObj)
         req.close()
-        return starObj
+        return objObj
 
     def GetPlotData(self):
         plotPoints = [ [ ], [ ] ]
-        for key, star in self.starObjs.items():
+        for key, obj in self.objs.items():
             try:
-                if star.magn != None:
-                    plotPoints[0].append(star.GetKelvin())
-                    plotPoints[1].append(star.magn) 
+                if obj.magn != None:
+                    plotPoints[0].append(obj.GetKelvin())
+                    plotPoints[1].append(obj.magn) 
             except:
                 pass
         return plotPoints
