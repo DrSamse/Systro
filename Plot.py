@@ -4,9 +4,10 @@ from modules.Simbad import DataBank, SpaceObject
 
 db = DataBank()
 db.LoadDB("./db.sdb")
-print("[DB] Loaded " + str(len(db.objsObjs)) + " entries")
+print("[DB] Loaded " + str(len(db.objs)) + " entries")
 
-STAR_COUNT = 0
+# Add new stars
+STAR_COUNT = 2000
 STEP = 1
 
 newStars = 0
@@ -30,9 +31,9 @@ plt.ylabel("Magnitude")
 plotPoints = db.GetPlotData()
 plt.plot(plotPoints[0], plotPoints[1], "o", markersize=1)
 print("Plotted " + str(len(plotPoints[0])) + " points")
-plt.title("Star-Plotting of " + str(len(plotPoints[0])) + " objss") 
+plt.title("Star-Plotting of " + str(len(plotPoints[0])) + " objects") 
 
 db.SaveDB()
-print("[DB] Saved " + str(len(db.objsObjs)) + " points")
+print("[DB] Saved " + str(len(db.objs)) + " points")
 
 plt.show()

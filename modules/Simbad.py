@@ -182,7 +182,7 @@ class DataBank:
             path (str, optional): The path to save the data bank to, . Defaults to "".
 
         Raises:
-            Exception: [description]
+            Exception: If the path is not specified
         """
         if path == "":
             if self.path != "":
@@ -199,13 +199,14 @@ class DataBank:
         jFile.close()
 
     def IDRequest(self, id : str) -> SpaceObject:
-        """
+        """Make an ID-Request to the SIMBAD-Databank
 
         Args:
-            id (str): [description]
+            id (str): The id to search for
 
         Returns:
-            SpaceObject: [description]
+            SpaceObject: The obj
+            None: If not found
         """
         if self.HasObj(id): return self.objs[id]
         req = requests.get("http://simbad.u-strasbg.fr/simbad/sim-id?Ident=" + id.replace(" ", "+") + "&NbIdent=1&Radius=2&Radius.unit=arcmin&submit=submit+id")
@@ -217,6 +218,11 @@ class DataBank:
         return objObj
 
     def GetPlotData(self):
+        """Get the data required to plot stars in mathplotlib
+
+        Returns:
+            list: The plotting data
+        """
         plotPoints = [ [ ], [ ] ]
         for key, obj in self.objs.items():
             try:
